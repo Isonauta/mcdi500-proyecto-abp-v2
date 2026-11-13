@@ -27,7 +27,7 @@ from nbclient.exceptions import CellExecutionError
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE_DIR = PROJECT_ROOT / "docs" / "evidencias"
-NOTEBOOK_DIRS = ("F1", "F2")  # orden de ejecución: fase 1 y luego fase 2
+NOTEBOOK_DIRS = ("F1", "F2", "F3")  # orden de ejecución: la F3 usa lo que deja la F2
 CELL_TIMEOUT_SECONDS = 600
 PENDING_MARKER = "Por desarrollar"
 
