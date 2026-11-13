@@ -118,3 +118,31 @@ class OutlierFlagger(Transformer):
 
     def _apply(self, frame: pd.DataFrame) -> pd.DataFrame:
         return ordenes.flag_extreme_amounts(frame, self._params["limit"])
+
+
+class TopSupplierMarker(Transformer):
+    """Marca las órdenes de los mayores proveedores.
+
+    Aprende quiénes son los `top` proveedores por monto. Ajustado con un período y
+    aplicado a otro, responde cuánto pesan después los que antes eran los mayores.
+    """
+
+    required_columns = (SUPPLIER_COLUMN, ordenes.AMOUNT_COLUMN)
+
+    def __init__(self, top: int = ordenes.TOP_SUPPLIERS) -> None:
+        super().__init__()
+        if top < 1:
+            raise ValueError("El número de proveedores debe ser al menos 1.")
+        self.top = top
+
+    def _learn(self, frame: pd.DataFrame) -> dict:
+        by_supplier = frame.groupby(SUPPLIER_COLUMN)[ordenes.AMOUNT_COLUMN].sum()
+        largest = by_supplier.nlargest(self.top)
+        return {"suppliers": tuple(largest.index), "share": float(largest.sum() / by_supplier.sum() * 100)}
+
+    def _apply(self, frame: pd.DataFrame) -> pd.DataFrame:
+        frame[TOP_COLUMN] = frame[SUPPLIER_COLUMN].isin(self._params["suppliers"])
+        return frame
+
+    def summary(self) -> dict:
+        return {"suppliers": len(self._params["suppliers"]), "share": round(self._params["share"], 1)}
