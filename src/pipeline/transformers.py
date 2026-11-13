@@ -146,3 +146,39 @@ class TopSupplierMarker(Transformer):
 
     def summary(self) -> dict:
         return {"suppliers": len(self._params["suppliers"]), "share": round(self._params["share"], 1)}
+
+
+class SupplierAnonymizer(Transformer):
+    """Reemplaza por un código a los proveedores que son personas naturales.
+
+    Aprende la correspondencia RUT -> código y la aplica a cualquier conjunto: una misma
+    persona conserva su código en todos los archivos.
+    """
+
+    def __init__(
+        self,
+        rut_column: str,
+        code_columns: tuple[str, ...] = (),
+        name_columns: tuple[str, ...] = (),
+        text_columns: tuple[str, ...] = (),
+        known_codes: dict[str, str] | None = None,
+    ) -> None:
+        super().__init__()
+        self.rut_column = rut_column
+        self.code_columns = tuple(code_columns)
+        self.name_columns = tuple(name_columns)
+        self.text_columns = tuple(text_columns)
+        self._known_codes = dict(known_codes or {})
+        self.required_columns = (rut_column, *self.code_columns, *self.name_columns, *self.text_columns)
+
+    def _learn(self, frame: pd.DataFrame) -> dict:
+        return {"codes": anonimizacion.learn_supplier_codes(frame[self.rut_column], self._known_codes)}
+
+    def _apply(self, frame: pd.DataFrame) -> pd.DataFrame:
+        return anonimizacion.anonymize_suppliers(
+            frame, self._params["codes"], self.rut_column, self.code_columns, self.name_columns, self.text_columns
+        )
+
+    def summary(self) -> dict:
+        # La correspondencia permite volver del código al RUT: en la bitácora solo va el total.
+        return {"natural_persons": len(self._params["codes"])}
