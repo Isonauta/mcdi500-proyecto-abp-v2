@@ -95,3 +95,26 @@ class Transformer:
 
     def __repr__(self) -> str:
         return f"{self.name}({'ajustado' if self._fitted else 'sin ajustar'})"
+
+
+class OutlierFlagger(Transformer):
+    """Marca las órdenes de monto extremo.
+
+    Aprende el límite (rango intercuartílico del logaritmo del monto) y lo aplica
+    después. Ajustado con un período, permite marcar otro con la misma vara.
+    """
+
+    required_columns = (ordenes.AMOUNT_COLUMN,)
+
+    def __init__(self, factor: float = ordenes.EXTREME_IQR_FACTOR) -> None:
+        super().__init__()
+        if factor <= 0:
+            raise ValueError("El factor del rango intercuartílico debe ser mayor que cero.")
+        self.factor = factor
+
+    def _learn(self, frame: pd.DataFrame) -> dict:
+        limit = ordenes.extreme_amount_limit(frame[ordenes.AMOUNT_COLUMN], self.factor)
+        return {"limit": limit, "orders_seen": len(frame)}
+
+    def _apply(self, frame: pd.DataFrame) -> pd.DataFrame:
+        return ordenes.flag_extreme_amounts(frame, self._params["limit"])
