@@ -182,3 +182,28 @@ class SupplierAnonymizer(Transformer):
     def summary(self) -> dict:
         # La correspondencia permite volver del código al RUT: en la bitácora solo va el total.
         return {"natural_persons": len(self._params["codes"])}
+
+
+class FunctionStep(Transformer):
+    """Adapta una función sin estado para que el pipeline la trate como a cualquier paso.
+
+    No aprende nada. Existe para que el pipeline llame a todos los pasos de la misma
+    forma, sin preguntar si son clases o funciones.
+    """
+
+    def __init__(self, function: Callable[[pd.DataFrame], pd.DataFrame], name: str | None = None) -> None:
+        super().__init__()
+        if not callable(function):
+            raise TypeError("FunctionStep necesita una función que reciba y devuelva un DataFrame.")
+        self._function = function
+        self._name = name or getattr(function, "__name__", "funcion")
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    def _learn(self, frame: pd.DataFrame) -> dict:
+        return {}
+
+    def _apply(self, frame: pd.DataFrame) -> pd.DataFrame:
+        return self._function(frame)
