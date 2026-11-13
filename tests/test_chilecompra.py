@@ -99,13 +99,17 @@ def test_sha256_matches_known_value(tmp_path):
 
 
 def test_saved_subset_round_trips_and_manifest_detects_changes(tmp_path):
-    zip_path = make_zip(tmp_path, "1;Salud;Región de Valparaíso;100,5\n")
+    header = "Codigo;sector;RegionUnidadCompra;MontoTotalOC;RutSucursal\n"
+    body = "1;Salud;Región de Valparaíso;100,5;PN-0001\n2;Salud;Región de Valparaíso;200;76.123.456-7\n"
+    zip_path = make_zip(tmp_path, body, header=header)
     subset, total, skipped = cc.filter_zip(zip_path, OC)
     raw_dir = tmp_path / "raw"
     subset_path = cc.save_subset(subset, raw_dir / "oc_2025-09_salud_valparaiso.csv")
     assert cc.read_subset(subset_path).equals(subset)
 
     record = cc.build_record(OC, "url", zip_path, subset_path, subset, total, skipped, "Salud", "Valpara")
+    assert record["anonymization"]["natural_person_suppliers"] == 1
+    assert record["anonymization"]["rows_with_code"] == 1
     manifest_path = raw_dir / "manifest.json"
     cc.write_manifest({"files": {subset_path.name: record}}, manifest_path)
     assert cc.verify_manifest(raw_dir, manifest_path) == {subset_path.name: True}

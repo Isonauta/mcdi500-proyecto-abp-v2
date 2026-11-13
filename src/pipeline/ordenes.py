@@ -4,7 +4,7 @@ Cada función hace una sola tarea y devuelve un DataFrame nuevo, sin modificar e
 que recibe. Los notebooks de F2 las llaman en orden:
 
     load_orders -> normalize_missing -> cast_types -> classify_modality
-    -> aggregate_orders -> validate_orders
+    -> aggregate_orders -> flag_extreme_amounts -> validate_orders
 """
 
 from pathlib import Path
@@ -22,6 +22,11 @@ DATE_COLUMNS = ("FechaCreacion", "FechaEnvio", "FechaAceptacion")
 BOOLEAN_COLUMNS = ("EsTratoDirecto", "EsCompraAgil")
 
 MODALITIES = ("Compra ágil", "Trato directo", "Convenio marco", "Licitación", "Otra")
+
+AMOUNT_COLUMN = "MontoTotalOC_PesosChilenos"  # monto de la orden, ya en pesos
+EXTREME_COLUMN = "monto_extremo"
+EXTREME_IQR_FACTOR = 1.5  # regla habitual de Tukey, aplicada al logaritmo del monto
+TOP_SUPPLIERS = 10
 
 # Columnas que describen a la orden completa (se repiten en cada una de sus líneas).
 ORDER_COLUMNS = (
@@ -111,9 +116,48 @@ def aggregate_orders(lines: pd.DataFrame) -> pd.DataFrame:
     return orders.reset_index(drop=True)
 
 
+def extreme_amount_limit(amounts: pd.Series, factor: float = EXTREME_IQR_FACTOR) -> float:
+    """Monto sobre el cual una orden se considera extrema.
+
+    Los montos son muy asimétricos: unas pocas órdenes valen cientos de veces la
+    mediana. Por eso la regla del rango intercuartílico (Q3 + factor × IQR) se aplica
+    al logaritmo del monto y el resultado se devuelve en pesos. Con los montos sin
+    transformar, la misma regla marcaría como extrema una de cada nueve órdenes.
+    """
+    positive = amounts[amounts > 0]
+    if positive.empty:
+        raise ValueError("No hay montos positivos para calcular el límite de montos extremos.")
+    logs = np.log10(positive)
+    q1, q3 = logs.quantile(0.25), logs.quantile(0.75)
+    return float(10 ** (q3 + factor * (q3 - q1)))
+
+
+def flag_extreme_amounts(orders: pd.DataFrame, limit: float | None = None) -> pd.DataFrame:
+    """Agrega 'monto_extremo': indica las órdenes cuyo monto supera el límite.
+
+    Las órdenes extremas se marcan, no se eliminan: una compra grande es un dato real.
+    Si no se entrega `limit`, se calcula con las mismas órdenes que se reciben.
+    """
+    if limit is None:
+        limit = extreme_amount_limit(orders[AMOUNT_COLUMN])
+    flagged = orders.copy()
+    flagged[EXTREME_COLUMN] = orders[AMOUNT_COLUMN] > limit
+    return flagged
+
+
+def top_supplier_share(orders: pd.DataFrame, top: int = TOP_SUPPLIERS) -> pd.Series:
+    """Porcentaje del monto de cada período que concentran sus `top` mayores proveedores."""
+    by_supplier = orders.groupby(["periodo", "CodigoProveedor"])[AMOUNT_COLUMN].sum()
+    return by_supplier.groupby("periodo").apply(lambda amounts: amounts.nlargest(top).sum() / amounts.sum() * 100)
+
+
 def validate_orders(orders: pd.DataFrame, months: tuple[str, ...] = cc.DEFAULT_MONTHS) -> pd.DataFrame:
     """Comprueba las reglas de calidad del dataset final y devuelve una fila por regla."""
-    amount = orders["MontoTotalOC_PesosChilenos"]
+    if EXTREME_COLUMN not in orders.columns:
+        raise KeyError(f"Falta la columna {EXTREME_COLUMN!r}: ejecute flag_extreme_amounts antes de validar.")
+    amount = orders[AMOUNT_COLUMN]
+    # El límite se recalcula con cada orden contada una vez, igual que en la exploración.
+    limit = extreme_amount_limit(orders.drop_duplicates("Codigo")[AMOUNT_COLUMN])
     sent_month = orders["FechaEnvio"].dt.strftime("%Y-%m")
     rules = {
         "Hay al menos una orden": len(orders) > 0,
@@ -125,5 +169,8 @@ def validate_orders(orders: pd.DataFrame, months: tuple[str, ...] = cc.DEFAULT_M
         "La modalidad solo toma valores conocidos": bool(orders["modalidad"].isin(MODALITIES).all()),
         "El período es uno de los meses del estudio": bool(orders["periodo"].isin(months).all()),
         "La fecha de envío cae en su período": bool((sent_month == orders["periodo"]).all()),
+        "Las órdenes marcadas como extremas son las que superan el límite": bool(
+            (orders[EXTREME_COLUMN] == (amount > limit)).all()
+        ),
     }
     return pd.DataFrame({"regla": list(rules), "cumple": list(rules.values())})

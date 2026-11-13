@@ -2,13 +2,16 @@
 
 Descarga los archivos mensuales de la descarga masiva de ChileCompra (órdenes de
 compra y licitaciones), conserva solo las filas de un sector y una región, y guarda
-el subconjunto sin transformar sus valores. Cada archivo queda registrado con su
+el subconjunto. Cada archivo queda registrado con su
 huella SHA-256 en un manifiesto, para que cualquier integrante verifique que trabaja
 exactamente con los mismos datos.
 
 La fuente regenera los archivos recientes (el mismo mes cambia entre descargas), por
 eso el subconjunto se congela en data/raw/ y el manifiesto guarda también la huella
 del archivo nacional descargado.
+
+Antes de guardar, los proveedores que son personas naturales se reemplazan por un
+código estable (ver anonimizacion.py): es el único cambio que se hace a los valores.
 """
 
 from __future__ import annotations
@@ -25,6 +28,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
+
+from . import anonimizacion
 
 BASE_URL = "https://transparenciachc.blob.core.windows.net"
 TERMS_URL = "https://www.chilecompra.cl/terminos-y-condiciones-de-uso/"
@@ -44,18 +49,51 @@ DOWNLOAD_BLOCK_BYTES = 1 << 20
 
 @dataclass(frozen=True)
 class Source:
-    """Conjunto de la descarga masiva y las columnas que se usan para filtrarlo."""
+    """Conjunto de la descarga masiva: columnas para filtrarlo y columnas con datos del proveedor.
+
+    Las cuatro últimas indican dónde hay datos que identifican al proveedor, para
+    anonimizar a las personas naturales antes de guardar (ver anonimizacion.py).
+    """
 
     key: str
     container: str
     region_column: str
     description: str
+    supplier_rut_column: str
+    supplier_code_columns: tuple[str, ...]
+    supplier_name_columns: tuple[str, ...]
+    free_text_columns: tuple[str, ...]
     sector_column: str = "sector"
 
 
 SOURCES = {
-    "oc": Source("oc", "oc-da", "RegionUnidadCompra", "Órdenes de compra"),
-    "lic": Source("lic", "lic-da", "RegionUnidad", "Licitaciones con ofertas"),
+    "oc": Source(
+        "oc",
+        "oc-da",
+        "RegionUnidadCompra",
+        "Órdenes de compra",
+        supplier_rut_column="RutSucursal",
+        supplier_code_columns=("CodigoProveedor", "CodigoSucursal"),
+        supplier_name_columns=("NombreProveedor", "Sucursal"),
+        free_text_columns=("Nombre", "Descripcion/Obervaciones", "EspecificacionComprador", "EspecificacionProveedor"),
+    ),
+    "lic": Source(
+        "lic",
+        "lic-da",
+        "RegionUnidad",
+        "Licitaciones con ofertas",
+        supplier_rut_column="RutProveedor",
+        supplier_code_columns=("CodigoProveedor", "CodigoSucursalProveedor"),
+        supplier_name_columns=("NombreProveedor", "RazonSocialProveedor"),
+        free_text_columns=(
+            "Nombre",
+            "Descripcion",
+            "DireccionUnidad",
+            "Descripcion linea Adquisicion",
+            "DescripcionProveedor",
+            "Nombre de la Oferta",
+        ),
+    ),
 }
 
 
@@ -211,6 +249,18 @@ def build_record(
         "rows": len(subset),
         "columns": subset.shape[1],
         "sha256": sha256_file(subset_path),
+        "anonymization": anonymization_record(source, subset),
+    }
+
+
+def anonymization_record(source: Source, subset: pd.DataFrame) -> dict:
+    """Deja escrito en el manifiesto qué se anonimizó y cuántos proveedores quedaron con código."""
+    coded = subset[source.supplier_rut_column].str.startswith(anonimizacion.CODE_PREFIX)
+    return {
+        "natural_person_suppliers": int(subset.loc[coded, source.supplier_rut_column].nunique()),
+        "rows_with_code": int(coded.sum()),
+        "replaced_columns": [source.supplier_rut_column, *source.supplier_code_columns, *source.supplier_name_columns],
+        "redacted_text_columns": list(source.free_text_columns),
     }
 
 

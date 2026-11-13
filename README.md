@@ -36,10 +36,10 @@ scripts/             obtención de datos, validador del curso, verificación del
 
 ## Datos
 
-Datos abiertos de ChileCompra: **órdenes de compra** y **licitaciones** del sector salud en la Región de Valparaíso, septiembre 2024 y septiembre 2025. Los subconjuntos ya están en `data/raw/`, con su huella SHA-256 en `data/raw/manifest.json`. Fuente, licencia, filtro y cuidados de lectura: [`data/README.md`](data/README.md).
+Datos abiertos de ChileCompra: **órdenes de compra** y **licitaciones** del sector salud en la Región de Valparaíso, septiembre 2024 y septiembre 2025. Los subconjuntos ya están en `data/raw/`, con su huella SHA-256 en `data/raw/manifest.json`. Los proveedores que son personas naturales están anonimizados: su RUT y su nombre se reemplazaron por un código estable. Fuente, licencia, filtro, anonimización y cuidados de lectura: [`data/README.md`](data/README.md).
 
 ```bash
-python scripts/fetch_data.py --verify     # comprueba que data/raw/ no cambió
+python scripts/fetch_data.py --verify     # comprueba que data/raw/ no cambió ni trae datos personales
 python scripts/fetch_data.py --months 2025-08 2025-10 --sources oc   # agrega meses
 ```
 
@@ -92,9 +92,9 @@ jupyter lab
 |---|---|---|---|
 | `F1/F1_Definición.ipynb` | Definición del problema, objetivos y configuración del flujo reproducible | — | — |
 | `F2/01_obtencion.ipynb` | Obtención del dataset y verificación de integridad | Fuente del dataset | `data/raw/` |
-| `F2/02_exploracion.ipynb` | Exploración inicial: estructura, calidad y distribuciones | `data/raw/` | Hallazgos |
+| `F2/02_exploracion.ipynb` | Exploración inicial: estructura, calidad, distribuciones y montos extremos | `data/raw/` | Hallazgos |
 | `F2/03_limpieza.ipynb` | Limpieza y manejo de valores NA | `data/raw/` | Dataset limpio |
-| `F2/04_transformacion.ipynb` | Casting, normalización y escalamiento | Dataset limpio | `data/processed/` |
+| `F2/04_transformacion.ipynb` | Casting, modalidad de compra, una fila por orden y marca de montos extremos | Dataset limpio | `data/processed/` |
 | `F2/05_validacion.ipynb` | Validación del dataset resultante | `data/processed/` | Dataset validado |
 
 ## Pruebas

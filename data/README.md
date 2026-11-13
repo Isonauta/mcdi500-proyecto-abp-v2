@@ -11,18 +11,46 @@ Datos abiertos de ChileCompra (Dirección de Compras y Contratación Pública), 
 
 ## Subconjuntos en `data/raw/`
 
-Filtro: `sector == "Salud"` y región de la unidad compradora que contiene `"Valpara"` (Región de Valparaíso). Solo se filtran filas: **los valores no se transforman**. Todo queda como texto, con el separador `;` y la codificación `latin-1` de la fuente, así que la limpieza y el *casting* se hacen y se justifican en los notebooks de F2.
+Filtro: `sector == "Salud"` y región de la unidad compradora que contiene `"Valpara"` (Región de Valparaíso). Se filtran filas y se anonimiza a los proveedores que son personas naturales (ver la sección siguiente); **ningún otro valor se transforma**. Todo queda como texto, con el separador `;` y la codificación `latin-1` de la fuente, así que la limpieza y el *casting* se hacen y se justifican en los notebooks de F2.
 
 | Archivo | Conjunto | Filas | Órdenes o licitaciones | Columnas | MB | Filas nacionales | SHA-256 |
 |---|---|---:|---:|---:|---:|---:|---|
-| `lic_2024-09_salud_valparaiso.csv` | Licitaciones | 2.726 | 136 | 110 | 4,8 | 178.603 | `e4f556a37611…` |
-| `lic_2025-09_salud_valparaiso.csv` | Licitaciones | 2.361 | 130 | 110 | 4,3 | 124.680 | `d943f722f90c…` |
-| `oc_2024-09_salud_valparaiso.csv` | Órdenes de compra | 12.025 | 4.598 | 78 | 20,8 | 396.516 | `fe068e328115…` |
-| `oc_2025-09_salud_valparaiso.csv` | Órdenes de compra | 13.855 | 5.687 | 79 | 23,9 | 407.358 | `e33bc2d595d8…` |
+| `lic_2024-09_salud_valparaiso.csv` | Licitaciones | 2.726 | 136 | 110 | 4,8 | 178.603 | `bd4997861167…` |
+| `lic_2025-09_salud_valparaiso.csv` | Licitaciones | 2.361 | 130 | 110 | 4,3 | 124.680 | `8f42f9d76159…` |
+| `oc_2024-09_salud_valparaiso.csv` | Órdenes de compra | 12.025 | 4.598 | 78 | 20,6 | 396.516 | `cc4167c1cbe4…` |
+| `oc_2025-09_salud_valparaiso.csv` | Órdenes de compra | 13.855 | 5.687 | 79 | 23,7 | 407.358 | `3e0b8e6c6544…` |
 
-Descargados el 2026-11-08. Ninguna línea mal formada. Los cuatro cumplen los requisitos de `validar_dataset.py`; el único aviso común es que hay columnas con más de 60 % de faltantes, y `lic_2024-09` tiene además 3 filas duplicadas exactas.
+Descargados el 2026-11-08 y anonimizados el 2026-11-13. Ninguna línea mal formada. Los cuatro cumplen los requisitos de `validar_dataset.py`; el único aviso común es que hay columnas con más de 60 % de faltantes, y `lic_2024-09` tiene además 3 filas duplicadas exactas.
 
 El detalle de cada archivo (URL, fecha de descarga, SHA-256 del zip nacional y del subconjunto, filas nacionales y líneas mal formadas) está en [`raw/manifest.json`](raw/manifest.json). El resultado del validador del curso está en [`../docs/validacion/`](../docs/validacion/).
+
+## Datos personales y anonimización
+
+Los datos son públicos: ChileCompra los publica en Mercado Público, una fuente de acceso no restringido, y son de carácter comercial, por lo que su tratamiento no requiere autorización (Ley 19.628, art. 4) y no son datos sensibles. Aun así, el RUT y el nombre de un proveedor que es **persona natural** siguen siendo datos personales. Como el análisis solo necesita distinguir a cada proveedor, no identificarlo, la copia congelada no los conserva.
+
+Qué hace `scripts/fetch_data.py` antes de guardar un subconjunto (lógica en `src/pipeline/anonimizacion.py`):
+
+| Dato | Dónde está | Qué se hace |
+|---|---|---|
+| RUT del proveedor persona natural (RUT bajo 50 millones) | `RutSucursal` en órdenes, `RutProveedor` en licitaciones | Se reemplaza por un código estable: `PN-0001`, `PN-0002`… |
+| Códigos internos del mismo proveedor | `CodigoProveedor`, `CodigoSucursal`, `CodigoSucursalProveedor` | El mismo código, porque con ellos se puede buscar al proveedor en Mercado Público |
+| Nombre del mismo proveedor | `NombreProveedor`, `Sucursal`, `RazonSocialProveedor` | «Persona natural PN-0001» |
+| RUT de personas, correos y nombres completos de proveedores personas naturales dentro de textos libres | Descripciones, observaciones y especificaciones | Se reemplazan por `[RUT]`, `[correo]` y el código |
+
+| Archivo | Personas naturales con código | Filas con código |
+|---|---:|---:|
+| `lic_2024-09_salud_valparaiso.csv` | 45 | 76 |
+| `lic_2025-09_salud_valparaiso.csv` | 27 | 75 |
+| `oc_2024-09_salud_valparaiso.csv` | 328 | 1.778 |
+| `oc_2025-09_salud_valparaiso.csv` | 304 | 1.380 |
+
+- **Es una seudonimización, no un anonimato absoluto.** La fuente es pública y cada orden conserva su código: quien lo busque en Mercado Público puede volver a saber quién es el proveedor. Lo que se consigue es que este repositorio no contenga esos datos.
+- **El código es estable:** una misma persona tiene el mismo código en los dos meses y en ambos conjuntos (511 personas en total). El análisis no cambia: siguen siendo 2.317 proveedores y la participación de los diez mayores es idéntica antes y después.
+- **Las empresas y los organismos públicos no se tocan.** Una empresa puede llevar en su razón social el nombre de su dueño; es una persona jurídica y se conserva.
+- **La correspondencia entre RUT y código no se versiona.** Queda en `data/external/supplier_codes.json`, fuera de Git. Quien agregue meses la necesita para que una persona conserve su código; sin ella, los proveedores nuevos reciben códigos nuevos que no se repiten con los existentes. Los códigos se asignan al azar, sin semilla, para que nadie pueda rehacer la correspondencia a partir de la fuente pública.
+- **Límite:** un nombre de persona escrito dentro de un texto libre que no sea proveedor del conjunto (por ejemplo, un funcionario de contacto) no se puede detectar de forma automática.
+
+`python scripts/fetch_data.py --verify` comprueba las huellas y, además, que no quede ningún RUT de persona natural ni correo en `data/raw/`. La misma comprobación corre en las pruebas (`tests/test_anonimizacion.py`).
 
 ## Cómo leerlos
 
@@ -37,7 +65,7 @@ oc = read_subset(RAW_DATA_DIR / "oc_2025-09_salud_valparaiso.csv")
 ## Cómo verificarlos, regenerarlos o ampliarlos
 
 ```bash
-python scripts/fetch_data.py --verify                                  # huellas SHA-256
+python scripts/fetch_data.py --verify                                  # huellas SHA-256 y ausencia de datos personales
 python scripts/fetch_data.py --months 2025-08 2025-10                  # agrega meses
 python scripts/fetch_data.py --sources lic --months 2025-01 2025-02    # solo licitaciones
 python scripts/fetch_data.py --region Biob --region-label biobio       # otra región

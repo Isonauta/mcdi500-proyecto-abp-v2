@@ -1,6 +1,6 @@
 # Registro del entorno
 
-Generado por `scripts/check_environment.py --write` el 2026-11-02 17:21.
+Generado por `scripts/check_environment.py --write` el 2026-11-13 10:54.
 
 | Elemento | Valor |
 |---|---|
@@ -14,7 +14,6 @@ Generado por `scripts/check_environment.py --write` el 2026-11-02 17:21.
 | numpy | 2.5.4 | 2.5.4 | ok |
 | pandas | 3.1.0 | 3.1.0 | ok |
 | matplotlib | 3.11.2 | 3.11.2 | ok |
-| seaborn | 0.13.2 | 0.13.2 | ok |
 | jupyterlab | 4.6.5 | 4.6.5 | ok |
 | ipykernel | 7.4.0 | 7.4.0 | ok |
 | nbconvert | 7.17.2 | 7.17.2 | ok |
