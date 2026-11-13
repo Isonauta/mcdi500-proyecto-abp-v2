@@ -80,7 +80,7 @@ Ejecución completa, de inicio a fin, con registro de evidencia:
 python scripts/run_all.py
 ```
 
-El script verifica el entorno, corre las pruebas (`pytest`) y ejecuta los notebooks de F1 y F2 en orden, guardando sus salidas. Cada corrida deja un log con fecha y hora en `docs/evidencias/`. Opciones: `--skip-notebooks` (solo entorno y pruebas) y `--no-log`.
+El script verifica el entorno, corre las pruebas (`pytest`) y ejecuta los notebooks de F1, F2 y F3 en orden, guardando sus salidas. Cada corrida deja un log con fecha y hora en `docs/evidencias/`. Opciones: `--skip-notebooks` (solo entorno y pruebas) y `--no-log`.
 
 Para trabajar un notebook de forma interactiva:
 
@@ -96,6 +96,25 @@ jupyter lab
 | `F2/03_limpieza.ipynb` | Limpieza y manejo de valores NA | `data/raw/` | Dataset limpio |
 | `F2/04_transformacion.ipynb` | Casting, modalidad de compra, una fila por orden y marca de montos extremos | Dataset limpio | `data/processed/` |
 | `F2/05_validacion.ipynb` | Validación del dataset resultante | `data/processed/` | Dataset validado |
+| `F3/F3_Nucleo.ipynb` | Núcleo algorítmico: clases, pipeline, equivalencia con la F2, eficiencia y validación | `data/raw/` y `data/processed/` | Verificación y mediciones |
+
+## Fase 3: núcleo algorítmico
+
+La Fase 3 reorganiza el pipeline de la Fase 2 sin cambiar su resultado. El detalle está en [`F3/README.md`](F3/README.md).
+
+```bash
+python scripts/run_all.py        # ejecuta F1, F2 y F3 en orden
+jupyter lab F3/F3_Nucleo.ipynb   # solo el notebook de la Fase 3, después de haber corrido la F2
+```
+
+| Módulo de `src/pipeline/` | Responsabilidad |
+|---|---|
+| `chilecompra.py` | Obtención y copia congelada de los datos |
+| `anonimizacion.py` | Anonimización de proveedores que son personas naturales |
+| `ordenes.py` | Funciones de limpieza, transformación y validación |
+| `transformers.py` | Pasos que aprenden de los datos (clases con `fit` y `transform`) |
+| `flujo.py` | Pipeline que encadena los pasos |
+| `config.py` | Rutas y parámetros compartidos |
 
 ## Pruebas
 
