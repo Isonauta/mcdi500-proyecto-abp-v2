@@ -6,7 +6,8 @@ La Fase 3 no cambia los datos ni el resultado de la Fase 2: reorganiza el mismo 
 
 | Archivo | Contenido |
 |---|---|
-| `F3_Nucleo.ipynb` | Notebook de la fase: de funciones a clases, pipeline, verificación de equivalencia con la F2, eficiencia y validación |
+| `F3_Nucleo.ipynb` | Notebook de la fase: de funciones a clases, pipeline, patrones de diseño y verificación de equivalencia con la F2 |
+| `F3_eficiencia.ipynb` | Medición de eficiencia: dos pares de implementaciones con `timeit` y `tracemalloc` |
 
 ## Cómo ejecutarlo
 
