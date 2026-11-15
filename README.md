@@ -114,7 +114,28 @@ jupyter lab F3/F3_Nucleo.ipynb   # solo el notebook de la Fase 3, después de ha
 | `ordenes.py` | Funciones de limpieza, transformación y validación |
 | `transformers.py` | Pasos que aprenden de los datos (clases con `fit` y `transform`) |
 | `flujo.py` | Pipeline que encadena los pasos |
+| `sinteticos.py` | Generador de datos sintéticos para pruebas |
 | `config.py` | Rutas y parámetros compartidos |
+
+## Datos sintéticos para probar e iterar
+
+`src/pipeline/sinteticos.py` genera órdenes de compra inventadas con la misma forma y las mismas dificultades de la fuente: montos con coma decimal, ausentes como `''` o `NA`, varias líneas por orden, el cambio del trato directo entre 2024 y 2025, órdenes de monto extremo y proveedores personas naturales. Sirve para probar el pipeline, medir con otros volúmenes y ensayar cambios sin tocar `data/raw/`.
+
+No se guarda ningún dato sintético en el repositorio: salen de una semilla, así que la misma llamada entrega siempre lo mismo.
+
+```python
+from pipeline import sinteticos
+from pipeline.flujo import build_orders_pipeline
+
+lines = sinteticos.make_order_lines(orders=500)            # como ordenes.load_orders
+orders = build_orders_pipeline().fit_transform(lines)
+```
+
+```bash
+python scripts/make_synthetic_data.py --orders 50000      # archivos en data/external/sinteticos/ (no se versiona)
+```
+
+En las pruebas están disponibles como `synthetic_lines` y `synthetic_raw_dir` (`tests/conftest.py`). Los RUT inventados usan rangos que no están asignados a nadie.
 
 ## Pruebas
 
