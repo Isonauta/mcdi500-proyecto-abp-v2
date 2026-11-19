@@ -25,31 +25,42 @@ from pipeline import config, ordenes
 from test_ordenes import make_lines  # helper de las pruebas de la Fase 2
 
 # ---------------------------------------------------------------------------
-# ADAPTAR: lo único que hay que tocar cuando Pedro fije la interfaz
+# ADAPTAR: interfaz acordada para la Fase 3 (fit / transform, como en scikit-learn)
 # ---------------------------------------------------------------------------
 CANDIDATOS_MODULOS = (
-    "pipeline.transformadores",
-    "pipeline.clases",
-    "pipeline.core",
+    "pipeline.transformers",
     "pipeline.flujo",
 )
-NOMBRE_CLASE_BASE = "Transformador"
-NOMBRE_CLASE_PIPELINE = "Pipeline"
-NOMBRE_FUNCION_FABRICA = "construir_pipeline"  # opcional: devuelve el pipeline ya armado
+NOMBRE_CLASE_BASE = "Transformer"
+NOMBRE_CLASE_PIPELINE = "OrdersPipeline"
+NOMBRE_FUNCION_FABRICA = "build_orders_pipeline"  # devuelve el pipeline ya armado
 
 # Si una clase hija necesita argumentos para construirse, indicarlos aquí:
 #   FABRICAS_HIJAS = {"CodificadorModalidad": lambda cls: cls(columna="modalidad")}
-FABRICAS_HIJAS: dict = {}
+FABRICAS_HIJAS: dict = {
+    "FunctionStep": lambda cls: cls(ordenes.normalize_missing),
+    "SupplierAnonymizer": lambda cls: cls(rut_column="CodigoProveedor"),
+}
 
 # Cada paso espera la salida del paso anterior. Si una hija no acepta las líneas crudas,
 # indicar qué entrada recibe:
 #   ENTRADAS_HIJAS = {"Agregador": lambda: referencia_hasta_modalidad(make_lines())}
-ENTRADAS_HIJAS: dict = {}
+ENTRADAS_HIJAS: dict = {
+    "OutlierFlagger": lambda: referencia_hasta_ordenes(make_lines()),
+    "TopSupplierMarker": lambda: referencia_hasta_ordenes(make_lines()),
+}
 # ---------------------------------------------------------------------------
 
 
 def referencia_f2(lines: pd.DataFrame) -> pd.DataFrame:
     """El resultado de la Fase 2: la cadena de funciones tal como está en `ordenes.py`."""
+    typed = ordenes.cast_types(ordenes.normalize_missing(lines))
+    orders = ordenes.aggregate_orders(ordenes.classify_modality(typed))
+    return ordenes.flag_extreme_amounts(orders)  # desde la corrección de la Sumativa 1
+
+
+def referencia_hasta_ordenes(lines: pd.DataFrame) -> pd.DataFrame:
+    """Entrada de los pasos que trabajan por orden: una fila por orden, sin la marca de extremos."""
     typed = ordenes.cast_types(ordenes.normalize_missing(lines))
     return ordenes.aggregate_orders(ordenes.classify_modality(typed))
 
@@ -142,24 +153,24 @@ def test_referencia_f2_no_modifica_la_entrada():
 def test_normal_pipeline_de_clases_igual_a_f2_sobre_datos_reales(pipeline_clases, lineas_reales):
     """La prueba que más rinde: la reorganización no cambió el resultado."""
     esperado = referencia_f2(lineas_reales)
-    obtenido = pipeline_clases.ajustar(lineas_reales).transformar(lineas_reales)
+    obtenido = pipeline_clases.fit(lineas_reales).transform(lineas_reales)
     pd.testing.assert_frame_equal(
         obtenido.reset_index(drop=True), esperado.reset_index(drop=True), check_like=True
     )
 
 
 def test_normal_no_pierde_ni_duplica_ordenes(pipeline_clases, lineas_reales):
-    obtenido = pipeline_clases.ajustar(lineas_reales).transformar(lineas_reales)
+    obtenido = pipeline_clases.fit(lineas_reales).transform(lineas_reales)
     assert len(obtenido) == lineas_reales["Codigo"].nunique()
 
 
 def test_normal_ajustar_devuelve_self(pipeline_clases):
-    """Permite encadenar: pipeline.ajustar(df).transformar(df)."""
-    assert pipeline_clases.ajustar(make_lines()) is pipeline_clases
+    """Permite encadenar: pipeline.fit(df).transform(df)."""
+    assert pipeline_clases.fit(make_lines()) is pipeline_clases
 
 
 def test_normal_resultado_valido_segun_reglas_de_calidad(pipeline_clases, lineas_reales):
-    obtenido = pipeline_clases.ajustar(lineas_reales).transformar(lineas_reales)
+    obtenido = pipeline_clases.fit(lineas_reales).transform(lineas_reales)
     reglas = ordenes.validate_orders(obtenido)
     assert reglas["cumple"].all(), reglas[~reglas["cumple"]]
 
@@ -171,7 +182,7 @@ def test_normal_resultado_valido_segun_reglas_de_calidad(pipeline_clases, lineas
 
 def test_limite_una_sola_orden(pipeline_clases):
     una = make_lines().iloc[[2]].reset_index(drop=True)  # solo la orden B-2
-    obtenido = pipeline_clases.ajustar(una).transformar(una)
+    obtenido = pipeline_clases.fit(una).transform(una)
     assert len(obtenido) == 1
 
 
@@ -179,7 +190,7 @@ def test_limite_sin_ningun_dato_ausente(pipeline_clases):
     """Columnas completas: el pipeline no debe fallar ni alterar valores."""
     lineas = make_lines(FechaAceptacion=["2025-09-03"] * 3, EsTratoDirecto=["No"] * 3)
     esperado = referencia_f2(lineas)
-    obtenido = pipeline_clases.ajustar(lineas).transformar(lineas)
+    obtenido = pipeline_clases.fit(lineas).transform(lineas)
     pd.testing.assert_frame_equal(
         obtenido.reset_index(drop=True), esperado.reset_index(drop=True), check_like=True
     )
@@ -187,7 +198,7 @@ def test_limite_sin_ningun_dato_ausente(pipeline_clases):
 
 def test_limite_una_sola_modalidad(pipeline_clases):
     lineas = make_lines(EsCompraAgil=["Si"] * 3, EsTratoDirecto=["NA"] * 3)
-    obtenido = pipeline_clases.ajustar(lineas).transformar(lineas)
+    obtenido = pipeline_clases.fit(lineas).transform(lineas)
     assert set(obtenido["modalidad"]) == {"Compra ágil"}
 
 
@@ -195,8 +206,8 @@ def test_limite_todo_ajustado_con_entrenamiento_se_aplica_a_otro_conjunto(pipeli
     """Ajustar con un conjunto y transformar otro no debe fallar (el esquema se conserva)."""
     entrenamiento = make_lines()
     otro = make_lines(Codigo=["C-3", "C-3", "D-4"], MontoTotalOC_PesosChilenos=["50", "50", "70"])
-    pipeline_clases.ajustar(entrenamiento)
-    obtenido = pipeline_clases.transformar(otro)
+    pipeline_clases.fit(entrenamiento)
+    obtenido = pipeline_clases.transform(otro)
     assert len(obtenido) == 2
 
 
@@ -207,13 +218,13 @@ def test_limite_todo_ajustado_con_entrenamiento_se_aplica_a_otro_conjunto(pipeli
 
 def test_excepcion_transformar_antes_de_ajustar(pipeline_clases):
     with pytest.raises(RuntimeError):
-        pipeline_clases.transformar(make_lines())
+        pipeline_clases.transform(make_lines())
 
 
 def test_excepcion_columna_ausente(pipeline_clases):
     sin_monto = make_lines().drop(columns=["MontoTotalOC_PesosChilenos"])
     with pytest.raises((KeyError, ValueError)):
-        pipeline_clases.ajustar(sin_monto).transformar(sin_monto)
+        pipeline_clases.fit(sin_monto).transform(sin_monto)
 
 
 # ===========================================================================
@@ -243,7 +254,7 @@ def _todas_las_hijas():
 def test_polimorfismo_todas_las_hijas_ofrecen_ajustar_y_transformar(cls):
     if cls is None:
         pytest.skip("Aún no hay clases hijas")
-    for metodo in ("ajustar", "transformar"):
+    for metodo in ("fit", "transform"):
         assert callable(getattr(cls, metodo, None)), f"{cls.__name__} no ofrece {metodo}()"
 
 
@@ -252,7 +263,7 @@ def test_encapsulamiento_hija_falla_si_no_se_ajusto(cls):
     if cls is None:
         pytest.skip("Aún no hay clases hijas")
     with pytest.raises(RuntimeError):
-        _instanciar(cls).transformar(make_lines())
+        _instanciar(cls).transform(make_lines())
 
 
 def referencia_hasta_modalidad(lines: pd.DataFrame) -> pd.DataFrame:
@@ -269,7 +280,7 @@ def test_encapsulamiento_hija_no_modifica_la_entrada(cls):
     copia = entrada.copy(deep=True)
     paso = _instanciar(cls)
     try:
-        paso.ajustar(entrada).transformar(entrada)
+        paso.fit(entrada).transform(entrada)
     except (AttributeError, KeyError, TypeError, ValueError):
         pytest.skip(f"{cls.__name__} no acepta esta entrada: definirla en ENTRADAS_HIJAS")
     pd.testing.assert_frame_equal(entrada, copia)
