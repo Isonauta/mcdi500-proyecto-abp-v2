@@ -7,7 +7,7 @@ La Fase 3 no cambia los datos ni el resultado de la Fase 2: reorganiza el mismo 
 | Archivo | Contenido |
 |---|---|
 | `F3_Nucleo.ipynb` | Notebook de la fase: de funciones a clases, pipeline, patrones de diseño y verificación de equivalencia con la F2 |
-| `F3_eficiencia.ipynb` | Medición de eficiencia: dos pares de implementaciones con `timeit` y `tracemalloc` |
+| `F3_eficiencia.ipynb` | Medición de eficiencia: tres pares de implementaciones con `timeit` y `tracemalloc` |
 
 ## Cómo ejecutarlo
 
@@ -20,7 +20,7 @@ El notebook compara su resultado con `data/processed/ordenes.csv`, que genera `F
 
 ## Dónde está el código
 
-El notebook no contiene lógica propia: importa los módulos de `src/pipeline/`.
+Los notebooks no contienen lógica propia: importan los módulos de `src/pipeline/`.
 
 | Módulo | Responsabilidad |
 |---|---|
@@ -28,6 +28,9 @@ El notebook no contiene lógica propia: importa los módulos de `src/pipeline/`.
 | `anonimizacion.py` | Funciones para anonimizar a los proveedores que son personas naturales |
 | `transformers.py` | Clase base `Transformer` y los pasos que aprenden de los datos: `OutlierFlagger`, `TopSupplierMarker`, `SupplierAnonymizer`; y `FunctionStep`, que adapta una función |
 | `flujo.py` | `OrdersPipeline`: encadena los pasos, los ejecuta en orden y lleva una bitácora |
+| `medicion.py` | Implementaciones alternativas de tres operaciones y la función que mide tiempo y memoria; las comparten `F3_eficiencia.ipynb` y sus pruebas |
+
+Las pruebas de esta fase están en `tests/test_f3_clases.py` (clases y regresión contra la F2) y `tests/test_eficiencia.py` (equivalencia y costo de las versiones medidas).
 
 ## Criterio de diseño
 
