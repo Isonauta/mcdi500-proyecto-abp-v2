@@ -1,6 +1,6 @@
 # Proyecto ABP · MCDI500 Programación para la Ciencia de Datos
 
-[![Ejecución completa](https://github.com/pedroinformatico/mcdi500-proyecto-abp/actions/workflows/ejecucion.yml/badge.svg)](https://github.com/pedroinformatico/mcdi500-proyecto-abp/actions/workflows/ejecucion.yml)
+[![Ejecución completa](https://github.com/pedroinformatico/mcdi500-proyecto-abp-v2/actions/workflows/ejecucion.yml/badge.svg)](https://github.com/pedroinformatico/mcdi500-proyecto-abp-v2/actions/workflows/ejecucion.yml)
 
 Repositorio del proyecto transversal del curso MCDI500 (Magíster en Ciencia de Datos e Inteligencia Artificial, Universidad Andrés Bello).
 
@@ -96,7 +96,8 @@ jupyter lab
 | `F2/03_limpieza.ipynb` | Limpieza y manejo de valores NA | `data/raw/` | Dataset limpio |
 | `F2/04_transformacion.ipynb` | Casting, modalidad de compra, una fila por orden y marca de montos extremos | Dataset limpio | `data/processed/` |
 | `F2/05_validacion.ipynb` | Validación del dataset resultante | `data/processed/` | Dataset validado |
-| `F3/F3_Nucleo.ipynb` | Núcleo algorítmico: clases, pipeline, equivalencia con la F2, eficiencia y validación | `data/raw/` y `data/processed/` | Verificación y mediciones |
+| `F3/F3_Nucleo.ipynb` | Núcleo algorítmico: clases, pipeline, patrones de diseño y equivalencia con la F2 | `data/raw/` y `data/processed/` | Verificación |
+| `F3/F3_eficiencia.ipynb` | Eficiencia: tres pares de implementaciones medidos con `timeit` y `tracemalloc` | `data/raw/` | Mediciones |
 
 ## Fase 3: núcleo algorítmico
 
@@ -187,9 +188,12 @@ La declaración del equipo, con el formato que completa cada integrante, está e
 
 | Integrante | Aportes principales |
 |---|---|
-| Pedro Hernández | Estructura del repositorio, entorno reproducible y ejecución automatizada; obtención de datos; pipeline de la Fase 2 con sus pruebas y notebooks |
-| Cristián Cordero (usuario de GitHub: Isonauta) | Contexto, problemática, preguntas y referencias del F1 |
-| Felipe Contreras (usuario de GitHub: felipec1985) | Objetivos, alcance, supuestos y vínculo con el mapa conceptual del F1 |
+| Pedro Hernández | Estructura del repositorio, entorno reproducible y ejecución automatizada; obtención de datos; pipeline de la Fase 2 con sus pruebas y notebooks. Fase 3: anonimización y montos extremos, clase base, clases hijas y pipeline (`transformers.py`, `flujo.py`), notebook `F3_Nucleo.ipynb`, generador de datos sintéticos e integración |
+| Cristián Cordero (usuario de GitHub: Isonauta) | Contexto, problemática, preguntas y referencias del F1. Fase 3: pruebas de las clases y de regresión contra la Fase 2 (`tests/test_f3_clases.py`); informe y bibliografía |
+| Felipe Contreras (usuario de GitHub: felipec1985) | Objetivos, alcance, supuestos y vínculo con el mapa conceptual del F1. Fase 3: módulo `medicion.py`, notebook `F3_eficiencia.ipynb` con tres comparaciones y sus pruebas (`tests/test_eficiencia.py`); página del mapa conceptual sobre anonimización y montos extremos |
+
+Las identidades de Git de cada integrante están unificadas en `.mailmap`: `git shortlog -sn` muestra una línea por persona.
+
 ## Licencia
 
 El código y la documentación de este repositorio se publican bajo la [licencia MIT](LICENSE): cualquiera puede usarlos, copiarlos y modificarlos citando a los autores.
