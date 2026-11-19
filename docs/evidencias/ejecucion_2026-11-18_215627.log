@@ -1,0 +1,37 @@
+[21:56:27] Ejecución completa del proyecto · Python 3.14.6
+[21:56:27] == Entorno: scripts/check_environment.py
+[21:56:27]    Python 3.14.6 (ok)
+[21:56:27]      ok  numpy==2.5.4 (instalado: 2.5.4)
+[21:56:27]      ok  pandas==3.1.0 (instalado: 3.1.0)
+[21:56:27]      ok  matplotlib==3.11.2 (instalado: 3.11.2)
+[21:56:27]      ok  jupyterlab==4.6.5 (instalado: 4.6.5)
+[21:56:27]      ok  ipykernel==7.4.0 (instalado: 7.4.0)
+[21:56:27]      ok  nbconvert==7.17.2 (instalado: 7.17.2)
+[21:56:27]      ok  nbclient==0.11.0 (instalado: 0.11.0)
+[21:56:27]      ok  nbformat==5.11.1 (instalado: 5.11.1)
+[21:56:27]      ok  pytest==9.2.0 (instalado: 9.2.0)
+[21:56:27]    Entorno verificado: todas las dependencias coinciden.
+[21:56:27]    -> OK (0.1 s)
+[21:56:27] == Pruebas: -m pytest -q
+[21:56:50]    ........................................................................ [ 59%]
+[21:56:50]    .................................................                        [100%]
+[21:56:50]    121 passed in 22.32s
+[21:56:50]    -> OK (23.1 s)
+[21:56:50] == Notebook F1/F1_Definición.ipynb
+[21:56:51]    -> OK: 3 celdas de código ejecutadas (1.6 s)
+[21:56:51] == Notebook F2/01_obtencion.ipynb
+[21:56:53]    -> OK: 5 celdas de código ejecutadas (1.4 s)
+[21:56:53] == Notebook F2/02_exploracion.ipynb
+[21:56:55]    -> OK: 13 celdas de código ejecutadas (2.6 s)
+[21:56:55] == Notebook F2/03_limpieza.ipynb
+[21:56:57]    -> OK: 6 celdas de código ejecutadas (1.8 s)
+[21:56:57] == Notebook F2/04_transformacion.ipynb
+[21:56:59]    -> OK: 8 celdas de código ejecutadas (1.6 s)
+[21:56:59] == Notebook F2/05_validacion.ipynb
+[21:57:00]    -> OK: 8 celdas de código ejecutadas (1.4 s)
+[21:57:00] == Notebook F3/F3_Nucleo.ipynb
+[21:57:03]    -> OK: 9 celdas de código ejecutadas (3.0 s)
+[21:57:03] == Notebook F3/F3_eficiencia.ipynb
+[21:57:09]    -> OK: 18 celdas de código ejecutadas (6.0 s)
+
+[21:57:09] Resumen: 10/10 pasos correctos
