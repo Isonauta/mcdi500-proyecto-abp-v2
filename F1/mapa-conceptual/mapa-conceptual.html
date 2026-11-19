@@ -191,5 +191,119 @@ fix(limpieza): trata nulos de trato directo y montos</pre>
     </div>
   </div>
 </section>
+
+<!-- ======================= PÁGINA 4 · ANONIMIZACIÓN Y MONTOS EXTREMOS ======================= -->
+<section class="page">
+  <div class="portada">
+    <div class="inst">Universidad Andrés Bello · MCDI500 · Grupo 5 · Decisiones de diseño del pipeline — anonimización y montos extremos</div>
+    <h1>Decisiones de diseño: anonimización de personas naturales y marcado de montos extremos</h1>
+    <div class="meta"><b>Módulos:</b> <code>src/pipeline/anonimizacion.py</code> · <code>src/pipeline/ordenes.py</code> &nbsp;|&nbsp; <b>Tests:</b> <code>tests/test_anonimizacion.py</code> · <code>tests/test_ordenes.py</code></div>
+  </div>
+
+  <!-- ── Franja 1: Anonimización ── -->
+  <div class="franja" style="top:112px; height:240px;"></div>
+  <div class="rot" style="left:44px; top:103px;">Anonimización de proveedores personas naturales (src/pipeline/anonimizacion.py)</div>
+
+  <!-- Por qué -->
+  <div class="n verde" style="left:40px; top:128px; width:230px; height:88px;">
+    <b>Problema</b>Los datos de ChileCompra son públicos, pero el RUT y el nombre de una persona natural son datos personales.
+  </div>
+  <!-- Criterio -->
+  <div class="n azul" style="left:300px; top:128px; width:230px; height:88px;">
+    <b>Criterio técnico</b>RUT &lt; 50 000 000 → persona natural.<br>Empresas y organismos públicos parten sobre ese número.
+  </div>
+  <!-- Qué se reemplaza -->
+  <div class="n naranja" style="left:560px; top:128px; width:230px; height:88px;">
+    <b>Qué se reemplaza</b>RUT, códigos internos y nombre → código estable <code>PN-0001</code>.<br>Textos libres: se borran RUT, correos y nombres completos (≥ 3 palabras).
+  </div>
+  <!-- Garantía -->
+  <div class="n morado" style="left:820px; top:128px; width:196px; height:88px;">
+    <b>Garantía</b><code>count_personal_data()</code> verifica que el subconjunto guardado tiene 0 RUT y 0 correos.
+  </div>
+
+  <!-- Flujo de dos pasos -->
+  <div class="n azul" style="left:40px; top:252px; width:450px; height:62px;">
+    <b>Paso 1 · learn_supplier_codes(ruts)</b> — aprende la correspondencia RUT → código en orden aleatorio no reproducible. Se guarda en <code>data/external/</code> (fuera de Git).
+  </div>
+  <div class="n verde" style="left:526px; top:252px; width:450px; height:62px;">
+    <b>Paso 2 · anonymize_suppliers(frame, codes, …)</b> — aplica la correspondencia a un subconjunto. Nunca modifica <code>data/raw/</code> después de guardado.
+  </div>
+
+  <!-- Flechas entre los dos pasos -->
+  <svg class="e" width="1056" height="816" viewBox="0 0 1056 816">
+    <defs>
+      <marker id="g4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="#455a64"/></marker>
+      <marker id="b4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0L10,5L0,10z" fill="#1565c0"/></marker>
+    </defs>
+    <!-- Paso 1 → Paso 2 -->
+    <g stroke="#1565c0" stroke-width="2" fill="none" marker-end="url(#b4)">
+      <path d="M490,283 H524"/>
+    </g>
+    <text x="507" y="277" font-family="Calibri,Arial,sans-serif" font-size="11" fill="#1565c0" text-anchor="middle">aplica</text>
+    <!-- Decisión ↔ Criterio -->
+    <g stroke="#455a64" stroke-width="1.5" fill="none" marker-end="url(#g4)">
+      <path d="M270,172 H298"/>
+      <path d="M530,172 H558"/>
+      <path d="M790,172 H818"/>
+    </g>
+  </svg>
+
+  <!-- ── Franja 2: Montos extremos ── -->
+  <div class="franja" style="top:368px; height:220px;"></div>
+  <div class="rot" style="left:44px; top:359px;">Marcado de montos extremos — regla de Tukey sobre log₁₀ (src/pipeline/ordenes.py)</div>
+
+  <!-- Por qué -->
+  <div class="n verde" style="left:40px; top:384px; width:230px; height:88px;">
+    <b>Problema</b>Los montos son muy asimétricos: unas pocas órdenes valen cientos de veces la mediana.
+  </div>
+  <!-- Por qué no la escala original -->
+  <div class="n rojo" style="left:300px; top:384px; width:230px; height:88px;">
+    <b>¿Por qué no IQR directo?</b>Con los montos sin transformar, la regla marcaría como extrema 1 de cada 9 órdenes — demasiado.
+  </div>
+  <!-- Solución -->
+  <div class="n azul" style="left:560px; top:384px; width:230px; height:88px;">
+    <b>Solución: log₁₀ + IQR</b><code>límite = 10^(Q3 + 1.5 × IQR)</code><br>Se aplica al logaritmo; el resultado se devuelve en pesos.
+  </div>
+  <!-- Decisión de diseño -->
+  <div class="n morado" style="left:820px; top:384px; width:196px; height:88px;">
+    <b>Decisión de diseño</b>Las órdenes extremas se <b>marcan</b>, no se eliminan: una compra grande es un dato real.
+  </div>
+
+  <!-- Columna resultado -->
+  <div class="n naranja" style="left:40px; top:502px; width:300px; height:62px;">
+    <b>Columna resultante</b><code>monto_extremo</code> (bool) — se agrega por <code>flag_extreme_amounts()</code> antes de <code>validate_orders()</code>.
+  </div>
+  <!-- Efecto en el análisis -->
+  <div class="n teal" style="left:376px; top:502px; width:300px; height:62px;">
+    <b>Efecto en el análisis</b>Permite calcular la concentración con y sin extremos para ver si los grandes contratos distorsionan el índice.
+  </div>
+  <!-- Test que lo garantiza -->
+  <div class="n gris" style="left:712px; top:502px; width:304px; height:62px;">
+    <b>Test que lo garantiza</b><code>test_flag_extreme_amounts_marca_solo_la_orden_que_se_escapa</code> — verifica que las extremas se marcan y no se eliminan.
+  </div>
+
+  <!-- ── Franja 3: Relación con el flujo de F2 ── -->
+  <div class="n gris" style="left:40px; top:614px; width:976px; height:62px;">
+    <b>Lugar en el flujo del pipeline (F2)</b>
+    <span style="font-size:12px">
+      load_orders → normalize_missing → cast_types → classify_modality → aggregate_orders →
+      <b style="color:#2e7d32">flag_extreme_amounts</b> → validate_orders &nbsp;|&nbsp;
+      Anonimización: se aplica una sola vez al crear <code>data/raw/</code> con <code>scripts/fetch_data.py</code>; no se repite en el pipeline de transformación.
+    </span>
+  </div>
+
+  <div class="leyenda">
+    <b>Leyenda:</b>
+    <span class="i"><span class="m verde"></span>problema / motivación</span>
+    <span class="i"><span class="m azul"></span>solución / implementación</span>
+    <span class="i"><span class="m naranja"></span>resultado / columna generada</span>
+    <span class="i"><span class="m morado"></span>decisión de diseño / garantía</span>
+    <span class="i"><span class="m rojo"></span>alternativa descartada</span>
+    <span class="i"><span class="m teal"></span>efecto en el análisis</span>
+    <span class="i"><span class="m gris"></span>contexto general</span>
+  </div>
+  <div class="pie">Fase 3 · Sumativa 2 · Grupo 5 · MCDI500 · Universidad Andrés Bello · noviembre 2026</div>
+</section>
+
 </body>
 </html>
