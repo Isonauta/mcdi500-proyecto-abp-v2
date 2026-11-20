@@ -30,7 +30,8 @@ tests/               pruebas automatizadas con pytest
 data/raw/            subconjuntos congelados de la fuente y su manifiesto con SHA-256 (no se modifican)
 data/processed/      datos generados por el pipeline (se regeneran, no se versionan)
 data/external/       archivos nacionales descargados (temporales, no se versionan)
-docs/                entorno, decisiones técnicas, trazabilidad, validación del dataset y evidencias
+docs/                entorno, arquitectura, decisiones técnicas, trazabilidad, validación del dataset y evidencias
+changelog.md         registro de cambios por fase, con el commit de cada uno
 scripts/             obtención de datos, validador del curso, verificación del entorno y ejecución completa
 ```
 
@@ -80,7 +81,7 @@ Ejecución completa, de inicio a fin, con registro de evidencia:
 python scripts/run_all.py
 ```
 
-El script verifica el entorno, corre las pruebas (`pytest`) y ejecuta los notebooks de F1, F2 y F3 en orden, guardando sus salidas. Cada corrida deja un log con fecha y hora en `docs/evidencias/`. Opciones: `--skip-notebooks` (solo entorno y pruebas) y `--no-log`.
+El script verifica el entorno, corre las pruebas (`pytest`) y ejecuta los notebooks de F1 a F4 en orden, guardando sus salidas. Cada corrida deja un log con fecha y hora en `docs/evidencias/`. Opciones: `--skip-notebooks` (solo entorno y pruebas) y `--no-log`.
 
 Para trabajar un notebook de forma interactiva:
 
@@ -98,6 +99,7 @@ jupyter lab
 | `F2/05_validacion.ipynb` | Validación del dataset resultante | `data/processed/` | Dataset validado |
 | `F3/F3_Nucleo.ipynb` | Núcleo algorítmico: clases, pipeline, patrones de diseño y equivalencia con la F2 | `data/raw/` y `data/processed/` | Verificación |
 | `F3/F3_eficiencia.ipynb` | Eficiencia: tres pares de implementaciones medidos con `timeit` y `tracemalloc` | `data/raw/` | Mediciones |
+| `F3/F3_escalamiento.ipynb` | Las mismas comparaciones sobre tamaños crecientes | Datos sintéticos | Razón de tiempo por tamaño |
 
 ## Fase 3: núcleo algorítmico
 
@@ -116,7 +118,11 @@ jupyter lab F3/F3_Nucleo.ipynb   # solo el notebook de la Fase 3, después de ha
 | `transformers.py` | Pasos que aprenden de los datos (clases con `fit` y `transform`) |
 | `flujo.py` | Pipeline que encadena los pasos |
 | `sinteticos.py` | Generador de datos sintéticos para pruebas |
+| `medicion.py` | Medidor de tiempo y memoria, y tres pares de implementaciones para comparar |
+| `escalamiento.py` | Las mismas comparaciones sobre tamaños crecientes |
 | `config.py` | Rutas y parámetros compartidos |
+
+Por qué cada módulo está separado, el diseño de clases y los patrones usados: [`docs/arquitectura.md`](docs/arquitectura.md). Historia de cambios y mejoras hechas a partir de las observaciones recibidas: [`changelog.md`](changelog.md).
 
 ## Datos sintéticos para probar e iterar
 
@@ -137,6 +143,17 @@ python scripts/make_synthetic_data.py --orders 50000      # archivos en data/ext
 ```
 
 En las pruebas están disponibles como `synthetic_lines` y `synthetic_raw_dir` (`tests/conftest.py`). Los RUT inventados usan rangos que no están asignados a nadie.
+
+### Medir la eficiencia con otros volúmenes
+
+`src/pipeline/escalamiento.py` repite las tres comparaciones de `medicion.py` sobre datos sintéticos de varios tamaños. Primero comprueba que las dos versiones dan el mismo resultado y después mide el tiempo (`timeit`, el mínimo de 7 repeticiones) y la memoria máxima (`tracemalloc`).
+
+```bash
+python scripts/measure_efficiency.py                        # 1.000, 5.000 y 25.000 órdenes
+python scripts/measure_efficiency.py --orders 10000 50000
+```
+
+La razón de tiempo dice cuántas veces más tarda la versión de referencia que la del pipeline; bajo 1, la del pipeline es más lenta. Los tiempos dependen del equipo: lo que se compara es la razón.
 
 ## Pruebas
 
