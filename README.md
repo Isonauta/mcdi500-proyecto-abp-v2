@@ -122,7 +122,7 @@ jupyter lab F3/F3_Nucleo.ipynb   # solo el notebook de la Fase 3, después de ha
 | `escalamiento.py` | Las mismas comparaciones sobre tamaños crecientes |
 | `config.py` | Rutas y parámetros compartidos |
 
-Por qué cada módulo está separado, el diseño de clases y los patrones usados: [`docs/arquitectura.md`](docs/arquitectura.md). Historia de cambios y mejoras hechas a partir de las observaciones recibidas: [`changelog.md`](changelog.md).
+Por qué cada módulo está separado, el diseño de clases y los patrones usados: [`docs/arquitectura.md`](docs/arquitectura.md). Historia de cambios y mejoras hechas a partir de las observaciones recibidas: [`changelog.md`](changelog.md). Plan y reparto de tareas de la Sumativa 3: [`docs/plan-sumativa-3.md`](docs/plan-sumativa-3.md).
 
 ## Datos sintéticos para probar e iterar
 
