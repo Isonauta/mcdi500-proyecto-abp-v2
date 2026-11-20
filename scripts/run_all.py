@@ -3,7 +3,7 @@
 Pasos, en orden:
     1. Verificación del entorno (scripts/check_environment.py).
     2. Pruebas automatizadas (pytest).
-    3. Ejecución de los notebooks de F1 y F2 en orden, guardando sus salidas.
+    3. Ejecución de los notebooks de F1 a F4 en orden, guardando sus salidas.
 
 Cada ejecución deja un log con fecha y hora en docs/evidencias/, que sirve como
 evidencia de que el proyecto corre sin errores en el entorno declarado.
@@ -27,7 +27,7 @@ from nbclient.exceptions import CellExecutionError
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE_DIR = PROJECT_ROOT / "docs" / "evidencias"
-NOTEBOOK_DIRS = ("F1", "F2", "F3")  # orden de ejecución: la F3 usa lo que deja la F2
+NOTEBOOK_DIRS = ("F1", "F2", "F3", "F4")  # orden de ejecución: la F3 y la F4 usan lo que deja la F2
 CELL_TIMEOUT_SECONDS = 600
 PENDING_MARKER = "Por desarrollar"
 

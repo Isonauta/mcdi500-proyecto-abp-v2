@@ -39,3 +39,5 @@ jobs:
             docs/evidencias/*.log
             F1/*.ipynb
             F2/*.ipynb
+            F3/*.ipynb
+            F4/*.ipynb
